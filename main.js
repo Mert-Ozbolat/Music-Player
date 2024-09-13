@@ -1,3 +1,4 @@
+/* elementlere ulasip obje olarak kullanma, yakalama*/
 const prevButton = document.getElementById('prev')
 const nextButton = document.getElementById('next')
 const repeatButton = document.getElementById('repeat')
@@ -22,13 +23,9 @@ const playListSongs = document.getElementById('playlist-songs')
 const currentProgress = document.getElementById('current-progress')
 
 
-//sira 
 let index
-
-//döngu
 let loop = true
 
-//liste
 const songsList = [
     {
         name: "Numb",
@@ -62,136 +59,176 @@ const songsList = [
     }
 ]
 
-//sarki atama  4
 const setSong = (arrayIndex) => {
-    console.log(arrayIndex)
-    let { name, link, artist, image } = songsList[arrayIndex]
-    audio.src = link
-    songName.innerHTML = name
-    songArtist.innerHTML = artist
-    songImage.src = image
+    let { name, link, artist, image } = songsList[arrayIndex];
+    audio.src = link;
+    songName.innerHTML = name;
+    songArtist.innerHTML = artist;
+    songImage.src = image;
 
-    //sureyi ayarla
+    // Şarkı metadata yüklendiğinde süreyi ayarla
     audio.onloadedmetadata = () => {
-        maxDuration.innerText = timeFormatter(audio.duration)
-    }
+        maxDuration.innerText = timeFormatter(audio.duration);
+    };
 
-    playListContainer.classList.add('hide')
-    playAudio()
-}
+    playListContainer.classList.add('hide');
+};
 
 
 const timeFormatter = (timeInput) => {
-    let minute = Math.floar(timeInput / 60)
+    let minute = Math.floor(timeInput / 60) // 3,25
     minute = minute < 10 ? "0" + minute : minute
-    let second = Math.floar(timeInput % 60)
+    let second = Math.floor(timeInput % 60) // 25
     second = second < 10 ? "0" + second : second
     return `${minute}:${second}`
 }
 
 
 
-
-
-// Şarkıyı Çal
 const playAudio = () => {
-    audio.play()
-    pauseButton.classList.remove('hide')
-    playButton.classList.add('hide')
-}
-// Şarkıyı Durdur
+    try {
+        audio.play();
+        pauseButton.classList.remove('hide');
+        playButton.classList.add('hide');
+    } catch (error) {
+        console.error('Audio play error:', error);
+    }
+};
+
+
 const pauseAudio = () => {
     audio.pause()
     pauseButton.classList.add('hide')
     playButton.classList.remove('hide')
 }
 
-// * NEXT SONG
+
 const nextSong = () => {
     if (loop) {
         if (index == (songsList.length - 1)) {
-            index = 0
-        }
-        else {
-            index++
+            index = 0;
+        } else {
+            index++;
         }
     } else {
-        let randIndex = Math.floor(Math.random() * songsList.length)
-        index = randIndex
+        let randIndex = Math.floor(Math.random() * songsList.length);
+        index = randIndex;
     }
-    setSong(index)
-    playAudio()
-}
+    setSong(index);
+    playAudio(); // Şarkı değişiminden sonra çalmak için çağırıyoruz
+};
 
 
 const previousSong = () => {
-    pauseAudio()
+    pauseAudio();
     if (index > 0) {
-        index--
+        index -= 1;
     } else {
-        index = songsList.length - 1
+        index = songsList.length - 1;
     }
-    setSong(index)
-    playAudio
-}
+    setSong(index);
+    playAudio(); // Şarkı değişiminden sonra çalmak için çağırıyoruz
+};
 
-
-
-// * PLAY AND PAUSE BTN
 playButton.addEventListener('click', playAudio)
 pauseButton.addEventListener('click', pauseAudio)
-
-// * Next Song
 nextButton.addEventListener('click', nextSong)
 prevButton.addEventListener('click', previousSong)
 
-// * Karıştırma Butonu
 shuffleButton.addEventListener('click', () => {
     if (shuffleButton.classList.contains('active')) {
         shuffleButton.classList.remove('active')
         loop = true
     } else {
-        shuffleButton.classList.add('active')
+        shuffleButton.classList.add("active")
         loop = false
     }
 })
-
 
 repeatButton.addEventListener('click', () => {
     if (repeatButton.classList.contains('active')) {
         repeatButton.classList.remove('active')
         loop = false
     } else {
-        repeatButton.classList.add('active')
+        repeatButton.classList.add("active")
         loop = true
     }
 })
 
 
-// * progress bar
 progressBar.addEventListener('click', (event) => {
+
+
     let coordStart = progressBar.getBoundingClientRect().left
-    console.log(coordStart)
+
+    console.log("coordStart: " + coordStart)
+
 
     let coordEnd = event.clientX
-    console.log(coordEnd)
+    console.log("coordEnd: " + coordEnd)
+
+    console.log("progressBar.offsetWidth: " + progressBar.offsetWidth)
 
     let progress = (coordEnd - coordStart) / progressBar.offsetWidth
+    console.log("progress: " + progress)
+    currentProgress.style.width = progress * 100 + "%"
+
+
+    audio.currentTime = progress * audio.duration // 300
+
+
+    audio.play()
+    pauseButton.classList.remove('hide')
+    playButton.classList.add('hide')
+})
+
+playListButton.addEventListener('click', () => {
+    playListContainer.classList.remove('hide')
+})
+
+closeButton.addEventListener('click', () => {
+    playListContainer.classList.add('hide')
+})
+
+setInterval(() => {
+    currentTimeRef.innerHTML = timeFormatter(audio.currentTime)
+    currentProgress.style.width = (audio.currentTime / audio.duration.toFixed(3)) * 100 + "%"
+}, 1000);
+
+
+audio.addEventListener('timeupdate', () => {
+    currentTimeRef.innerText = timeFormatter(audio.currentTime)
 })
 
 
-
-
-
-window.onload = () => {
-    index = 0
-    setSong(index)
-    pauseAudio()
+audio.onended = () => {
+    nextSong()
 }
 
+const initializePlaylist = () => {
+    for (let i in songsList) {
+        playListSongs.innerHTML += `<li class="playlistSong"
+        onclick="setSong(${i})">
+            <div class="playlist-image-container">
+                <img src="${songsList[i].image}" />
+            </div>
+            <div class="playlist-song-details">
+                <span id="playlist-song-name">
+                    ${songsList[i].name}
+                </span>
+                <span id="playlist-song-artist-album">
+                    ${songsList[i].artist}
+                </span>
+            </div>
+        </li>
+        `
+    }
+}
 
-
-
-
-
-
+//ekran yuklenildiginda
+window.onload = () => {
+    index = 0;
+    setSong(index);
+    pauseAudio();
+    initializePlaylist();
+};
